@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" alt="icon" width="180">
+</p>
+
 # PCTFFM (파일좀 변환해줘라)
 
 PCTFFM은 **FFmpeg 기반의 파일 변환 프로그램**으로,  
