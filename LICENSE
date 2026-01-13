@@ -1,0 +1,51 @@
+Custom Read-Only License (CROL)
+
+Copyright (c) 2026 Baekmin Ji
+All rights reserved.
+
+This software, including but not limited to its source code, binaries,
+documentation, and any associated materials (the "Software"),
+is protected by applicable copyright laws.
+
+1. Grant of Permission
+Permission is hereby granted to any person obtaining access to this Software
+to view and read the contents of the repository strictly for personal,
+non-commercial, and informational purposes only.
+
+No other rights are granted, whether express or implied.
+
+2. Restrictions
+The following actions are strictly prohibited without prior written permission
+from the copyright holder:
+
+- Modifying, altering, or adapting the Software in whole or in part
+- Creating derivative works based on the Software
+- Copying or reusing any portion of the source code
+- Redistributing the Software or any modified versions thereof
+- Publishing or sharing compiled binaries or build outputs
+- Forking the repository
+- Using the Software for commercial purposes
+- Incorporating the Software into other projects, whether open-source or proprietary
+
+Any unauthorized use shall be considered a violation of this license
+and applicable copyright laws.
+
+3. No Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+4. Limitation of Liability
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH
+THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+5. Termination
+This license is automatically terminated if any of the above restrictions
+are violated. Upon termination, you must immediately cease all use of
+the Software.
+
+6. License Modification
+The copyright holder reserves the right to modify this license
+at any time without prior notice.
