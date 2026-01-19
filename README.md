@@ -14,7 +14,3 @@ Windows용 WinForms 애플리케이션입니다.
 본 소프트웨어를 사용함으로 인해 발생하는  
 모든 문제, 손해, 데이터 손실 등에 대해  
 개발자는 어떠한 책임도 지지 않습니다.
-
-## License
-This project is licensed under the  
-Creative Commons Attribution-NonCommercial 4.0 International License.
