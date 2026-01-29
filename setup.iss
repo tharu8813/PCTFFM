@@ -5,10 +5,10 @@
 ; ============================================================================
 
 #define MyAppName "파일좀 변환해줘라"
-#define MyAppVersion "3.0.0.0"
+#define MyAppVersion "3.1.0.0"
 #define MyAppPublisher "Ji Beak min(tharu8813)"
 #define MyAppCopyright "© 2024-2026 Ji Beak min(tharu8813). All rights reserved."
-#define MyAppURL "https://github.com/tharu8813"
+#define MyAppURL "https://github.com/tharu8813/PCTFFM"
 #define MyAppExeName "PCTFFM.exe"
 #define MyAppGUID "{{2e592940-b210-4e87-810a-64b9e5f43d0c}"
 
@@ -32,9 +32,9 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 AppCopyright={#MyAppCopyright}
-DefaultDirName={localappdata}\{#MyAppName}
+DefaultDirName={commonpf}\{#MyAppName}
+PrivilegesRequired=admin
 DefaultGroupName={#MyAppName}
-PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
 OutputDir=output-setup
 OutputBaseFilename={#MyAppName}-{#MyAppVersion}-setup
@@ -51,7 +51,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName={#MyAppName}
-UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallDisplayIcon={commonpf}\{#MyAppExeName}
 Uninstallable=yes
 AlwaysRestart=no
 DisableDirPage=no
@@ -87,7 +87,6 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-Type: dirifempty; Name: "{localappdata}\{#MyAppPublisher}"
 
 [Code]
 { 이전 버전 제거를 위한 함수들 }

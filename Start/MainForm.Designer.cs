@@ -1,6 +1,6 @@
 ﻿using System.Windows.Forms;
 
-namespace PCTFFM {
+namespace PCTFFM.Start {
     partial class MainForm {
         private System.ComponentModel.IContainer components = null;
 

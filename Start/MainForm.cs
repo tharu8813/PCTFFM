@@ -1,17 +1,16 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using PCTFFM.Tools;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace PCTFFM {
+namespace PCTFFM.Start {
     public partial class MainForm : Form {
         private List<FileItem> fileList = new List<FileItem>();
         private string outputFolder = string.Empty;
@@ -25,22 +24,37 @@ namespace PCTFFM {
             LoadSettings();
 
             Shown += async (s, e) => {
+                string baseDir = Tol.AppdataPath;
+                string ffmpegPath = Path.Combine(baseDir, "ffmpeg.exe");
+                Console.WriteLine(ffmpegPath);
                 try {
                     ToggleControls(false);
+
+                    await GitHubUpdater.CheckAndUpdateAsync(
+                        "tharu8813",
+                        "PCTFFM",
+                        new Version(Application.ProductVersion),
+                        progressBar,
+                        labelProgress
+                    );
+
                     labelProgress.Text = "(최초 실행시 시도) FFmpeg 준비 중...";
                     progressBar.Value = 0;
 
-                    await EnsureFFmpegAsyncWithProgress();
+                    var progress = new Progress<Tol.FFmpegProgress>(p => {
+                        progressBar.Value = p.Percentage;
+                        labelProgress.Text = p.Message;
+                    });
+
+                    await Tol.EnsureFFmpegAsync(
+                        baseDir,
+                        progress
+                    );
 
                     labelProgress.Text = "준비 완료!";
                     progressBar.Value = 0;
                 } catch (Exception ex) {
-                    MessageBox.Show(
-                        "FFmpeg 초기화 실패:\n" + ex.Message,
-                        "오류",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
+                    Tol.ShowError("FFmpeg 초기화 실패:\n" + ex.Message);
                     Close();
                 } finally {
                     progressBar.Style = ProgressBarStyle.Blocks;
@@ -68,9 +82,7 @@ namespace PCTFFM {
         // 파일 타입 선택 시 변환 형식 초기화
         private void comboBoxFileType_SelectedIndexChanged(object sender, EventArgs e) {
             if (fileList.Count > 0) {
-                var result = MessageBox.Show("파일 타입을 변경하면 목록이 초기화됩니다. 계속하시겠습니까?",
-                    "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.No) return;
+                if (Tol.ShowQ("파일 타입을 변경하면 목록이 초기화됩니다. 계속하시겠습니까?")) return;
 
                 fileList.Clear();
                 listViewFiles.Items.Clear();
@@ -79,12 +91,25 @@ namespace PCTFFM {
             comboBoxFormat.Items.Clear();
 
             if (comboBoxFileType.SelectedItem.ToString() == "비디오") {
-                comboBoxFormat.Items.AddRange(new object[] { "mp4", "avi", "mkv", "mov", "wmv", "gif", "mp3" });
+                comboBoxFormat.Items.AddRange(new object[] {
+        "mp4","mkv","avi","mov","wmv",
+        "webm","flv","mpeg","mpg","m4v",
+        "3gp","3g2","ts","mts","m2ts",
+        "vob","ogv","rm","rmvb"
+    });
             } else if (comboBoxFileType.SelectedItem.ToString() == "이미지") {
-                comboBoxFormat.Items.AddRange(new object[] { "jpg", "png", "gif", "bmp", "tiff", "ico", "heic", "svg", "webp" });
+                comboBoxFormat.Items.AddRange(new object[] {
+        "jpg","jpeg","png","bmp","tiff","tif",
+        "webp","ppm","pgm","pbm"
+    });
             } else if (comboBoxFileType.SelectedItem.ToString() == "오디오") {
-                comboBoxFormat.Items.AddRange(new object[] { "mp3", "wav", "flac", "aac", "ogg", "m4a", "wma" });
+                comboBoxFormat.Items.AddRange(new object[] {
+        "mp3","wav","flac","aac","ogg",
+        "m4a","wma","opus","alac",
+        "aiff","amr","ape","ac3","dts","caf"
+    });
             }
+
         }
 
         // 파일 추가 버튼 클릭
@@ -120,8 +145,7 @@ namespace PCTFFM {
                     }
 
                     if (duplicateCount > 0) {
-                        MessageBox.Show($"{addedCount}개 파일 추가됨. {duplicateCount}개 중복 파일 제외됨.",
-                            "정보", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Tol.ShowInfo($"{addedCount}개 파일 추가됨. {duplicateCount}개 중복 파일 제외됨.");
                     }
                 }
             }
@@ -130,22 +154,10 @@ namespace PCTFFM {
         // ListView에 아이템 추가
         private void AddListViewItem(FileItem fileItem) {
             var item = new ListViewItem(Path.GetFileName(fileItem.FilePath));
-            item.SubItems.Add(FormatFileSize(fileItem.FileSize));
+            item.SubItems.Add(Tol.FormatFileSize(fileItem.FileSize));
             item.SubItems.Add(fileItem.Status);
             item.Tag = fileItem;
             listViewFiles.Items.Add(item);
-        }
-
-        // 파일 크기 포맷
-        private string FormatFileSize(long bytes) {
-            string[] sizes = { "B", "KB", "MB", "GB" };
-            double len = bytes;
-            int order = 0;
-            while (len >= 1024 && order < sizes.Length - 1) {
-                order++;
-                len = len / 1024;
-            }
-            return $"{len:0.##} {sizes[order]}";
         }
 
         // 변환 시작 버튼 클릭
@@ -155,76 +167,26 @@ namespace PCTFFM {
             try {
                 Start();
             } catch (Exception ex) {
-                MessageBox.Show("오류 발생:\n" + ex.Message);
+                Tol.ShowError("변환 중 오류가 발생했습니다:\n" + ex.Message);
             } finally {
                 btnStartConversion.Enabled = true;
             }
-        }
-
-        private async Task EnsureFFmpegAsyncWithProgress() {
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string ffmpegPath = Path.Combine(baseDir, "ffmpeg.exe");
-
-            if (File.Exists(ffmpegPath))
-                return;
-
-            string zipPath = Path.Combine(Path.GetTempPath(), "ffmpeg.zip");
-            string extractPath = Path.Combine(Path.GetTempPath(), "ffmpeg_extract");
-
-            if (Directory.Exists(extractPath))
-                Directory.Delete(extractPath, true);
-
-            using (var wc = new WebClient()) {
-
-                wc.DownloadProgressChanged += (s, e) => {
-                    Invoke(new Action(() => {
-                        progressBar.Value = e.ProgressPercentage;
-                        labelProgress.Text = $"(최초 실행시 시도) FFmpeg 다운로드 중... {e.ProgressPercentage}%";
-                    }));
-                };
-
-                await wc.DownloadFileTaskAsync(
-                    new Uri("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),
-                    zipPath
-                );
-            }
-
-            Invoke(new Action(() => {
-                progressBar.Value = 0;
-                labelProgress.Text = "압축 해제 중...";
-            }));
-
-            await Task.Run(() => {
-                ZipFile.ExtractToDirectory(zipPath, extractPath);
-            });
-
-            string extractedFFmpeg = Directory
-                .GetFiles(extractPath, "ffmpeg.exe", SearchOption.AllDirectories)
-                .FirstOrDefault();
-
-            if (extractedFFmpeg == null)
-                throw new FileNotFoundException("ffmpeg.exe를 찾을 수 없습니다.");
-
-            File.Copy(extractedFFmpeg, ffmpegPath, overwrite: true);
-
-            File.Delete(zipPath);
-            Directory.Delete(extractPath, true);
         }
 
         private async void Start() {
             string ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
 
             if (!File.Exists(ffmpegPath)) {
-                MessageBox.Show("ffmpeg.exe가 없습니다.");
+                Tol.ShowError("FFmpeg 실행 파일이 없습니다. 프로그램을 다시 시작해주세요.");
                 return;
             }
 
             if (fileList.Count == 0 || comboBoxFormat.SelectedItem == null) {
-                MessageBox.Show("파일과 변환할 형식을 선택해주세요.", "정보", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Tol.ShowError("변환할 파일과 형식을 선택해주세요.");
                 return;
             }
             if (string.IsNullOrEmpty(outputFolder)) {
-                MessageBox.Show("출력 폴더를 지정해주세요.", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Tol.ShowError("출력 폴더를 선택해주세요.");
                 return;
             }
 
@@ -288,26 +250,17 @@ namespace PCTFFM {
                     try {
                         File.Delete(fileItem.FilePath);
                     } catch (Exception e) {
-                        MessageBox.Show($"원본 파일 삭제 도중 오류가 발생했습니다.\n경로: {fileItem.FilePath}\n\n{e.Message}",
-                            "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Tol.ShowError($"원본 파일 삭제 도중 오류가 발생했습니다.\n경로: {fileItem.FilePath}\n\n{e.Message}");
                     }
                 }
             }
 
-            labelProgress.Text = $"완료: {completed}개, 실패: {failed}개 (소요시간: {FormatTimeSpan(conversionStopwatch.Elapsed)})";
+            labelProgress.Text = $"완료: {completed}개, 실패: {failed}개 (소요시간: {Tol.FormatTimeSpan(conversionStopwatch.Elapsed)})";
             ToggleControls(true);
 
             if (failed > 0) {
-                MessageBox.Show($"일부 파일 변환에 실패했습니다.\n성공: {completed}개\n실패: {failed}개",
-                    "변환 완료", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Tol.ShowWarning($"일부 파일 변환에 실패했습니다.\n성공: {completed}개\n실패: {failed}개");
             }
-        }
-
-        // 시간 포맷
-        private string FormatTimeSpan(TimeSpan time) {
-            if (time.TotalMinutes < 1)
-                return $"{time.Seconds}초";
-            return $"{time.Minutes}분 {time.Seconds}초";
         }
 
         // 파일 상태 업데이트
@@ -348,9 +301,7 @@ namespace PCTFFM {
         // 변환 취소 버튼 클릭
         private void btnCancel_Click(object sender, EventArgs e) {
             if (cancellationTokenSource != null && !cancellationTokenSource.IsCancellationRequested) {
-                var result = MessageBox.Show("변환을 취소하시겠습니까?", "확인",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.Yes) {
+                if (Tol.ShowQ("변환을 취소하시겠습니까?")) {
                     cancellationTokenSource?.Cancel();
                     labelProgress.Text = "변환 취소됨";
                 }
@@ -389,7 +340,7 @@ namespace PCTFFM {
                     listViewFiles.Items.Remove(item);
                 }
             } else {
-                MessageBox.Show("삭제할 파일을 선택하세요.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Tol.ShowError("삭제할 파일을 선택하세요.");
             }
         }
 
@@ -404,10 +355,10 @@ namespace PCTFFM {
                 if (fileItem != null && File.Exists(fileItem.FilePath)) {
                     Process.Start("explorer.exe", $"/select, \"{fileItem.FilePath}\"");
                 } else {
-                    MessageBox.Show("파일이 존재하지 않습니다.", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Tol.ShowError("파일이 존재하지 않습니다.");
                 }
             } else {
-                MessageBox.Show("보기할 파일을 선택하세요.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Tol.ShowError("보기할 파일을 선택하세요.");
             }
         }
 
@@ -415,7 +366,7 @@ namespace PCTFFM {
         private bool ConvertFileWithFFmpeg(string inputFile, string outputFile, string format, CancellationToken cancellationToken) {
             try {
                 // 품질 설정에 따른 FFmpeg 인자
-                string qualityArgs = GetQualityArguments(format);
+                string qualityArgs = Tol.GetQualityArguments(format);
                 string ffmpegArguments = $"-i \"{inputFile}\" {qualityArgs} -y \"{outputFile}\"";
 
                 ProcessStartInfo processStartInfo = new ProcessStartInfo {
@@ -451,20 +402,6 @@ namespace PCTFFM {
                 Debug.WriteLine($"FFmpeg 오류: {ex.Message}");
                 return false;
             }
-        }
-
-        // 품질 설정 가져오기
-        private string GetQualityArguments(string format) {
-            // 비디오 포맷
-            if (new[] { "mp4", "avi", "mkv", "mov", "wmv" }.Contains(format)) {
-                return "-c:v libx264 -crf 23 -c:a aac -b:a 128k";
-            }
-            // 오디오 포맷
-            else if (new[] { "mp3", "aac", "ogg" }.Contains(format)) {
-                return "-b:a 192k";
-            }
-            // 이미지는 기본 설정
-            return "";
         }
 
         // 드래그 앤 드롭
@@ -546,9 +483,7 @@ namespace PCTFFM {
         // 모두 삭제 버튼
         private void btnClearAll_Click(object sender, EventArgs e) {
             if (fileList.Count > 0) {
-                var result = MessageBox.Show("모든 파일을 목록에서 제거하시겠습니까?", "확인",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.Yes) {
+                if (Tol.ShowQ("모든 파일을 목록에서 제거하시겠습니까?")) {
                     fileList.Clear();
                     listViewFiles.Items.Clear();
                     labelProgress.Text = "목록이 비워졌습니다.";
