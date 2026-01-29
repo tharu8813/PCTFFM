@@ -3,7 +3,7 @@
 </p>
 
 # PCTFFM (파일좀 변환해줘라)
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.7.2%20WinForms-512BD4)](https://dotnet.microsoft.com/download/dotnet-framework)
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-GPL3.0-green.svg)](LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/tharu8813/PCTFFM?label=Download)](https://github.com/tharu8813/PCTFFM/releases/latest)
