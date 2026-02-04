@@ -21,7 +21,6 @@ namespace PCTFFM.Start {
         public MainForm() {
             InitializeComponent();
             InitializeListView();
-            LoadSettings();
 
             Shown += async (s, e) => {
                 string baseDir = Tol.AppdataPath;
@@ -64,7 +63,6 @@ namespace PCTFFM.Start {
         }
 
 
-        // ListView 초기화 - 컬럼 추가
         private void InitializeListView() {
             listViewFiles.View = View.Details;
             listViewFiles.Columns.Clear();
@@ -74,15 +72,11 @@ namespace PCTFFM.Start {
             listViewFiles.FullRowSelect = true;
         }
 
-        // 설정 로드 (선택사항)
-        private void LoadSettings() {
-            // 마지막 출력 폴더 등 저장된 설정 로드 가능
-        }
 
-        // 파일 타입 선택 시 변환 형식 초기화
+
         private void comboBoxFileType_SelectedIndexChanged(object sender, EventArgs e) {
             if (fileList.Count > 0) {
-                if (Tol.ShowQ("파일 타입을 변경하면 목록이 초기화됩니다. 계속하시겠습니까?")) return;
+                if (!Tol.ShowQ("파일 타입을 변경하면 목록이 초기화됩니다. 계속하시겠습니까?")) return;
 
                 fileList.Clear();
                 listViewFiles.Items.Clear();
@@ -151,7 +145,6 @@ namespace PCTFFM.Start {
             }
         }
 
-        // ListView에 아이템 추가
         private void AddListViewItem(FileItem fileItem) {
             var item = new ListViewItem(Path.GetFileName(fileItem.FilePath));
             item.SubItems.Add(Tol.FormatFileSize(fileItem.FileSize));
@@ -160,12 +153,11 @@ namespace PCTFFM.Start {
             listViewFiles.Items.Add(item);
         }
 
-        // 변환 시작 버튼 클릭
         private async void btnStartConversion_Click(object sender, EventArgs e) {
             btnStartConversion.Enabled = false;
 
             try {
-                Start();
+                await StartAsync();
             } catch (Exception ex) {
                 Tol.ShowError("변환 중 오류가 발생했습니다:\n" + ex.Message);
             } finally {
@@ -173,8 +165,8 @@ namespace PCTFFM.Start {
             }
         }
 
-        private async void Start() {
-            string ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+        private async Task StartAsync() {
+            string ffmpegPath = Path.Combine(Tol.AppdataPath, "ffmpeg.exe");
 
             if (!File.Exists(ffmpegPath)) {
                 Tol.ShowError("FFmpeg 실행 파일이 없습니다. 프로그램을 다시 시작해주세요.");
@@ -244,7 +236,6 @@ namespace PCTFFM.Start {
             await Task.WhenAll(tasks);
             conversionStopwatch.Stop();
 
-            // 원본 파일 삭제
             if (checkBox1.Checked) {
                 foreach (var fileItem in fileList.Where(f => f.Status == "완료")) {
                     try {
@@ -263,7 +254,6 @@ namespace PCTFFM.Start {
             }
         }
 
-        // 파일 상태 업데이트
         private void UpdateFileStatus(FileItem fileItem, string status, Color color) {
             fileItem.Status = status;
 
@@ -280,8 +270,6 @@ namespace PCTFFM.Start {
                 }
             }
         }
-
-        // 컨트롤 활성화/비활성화
         private void ToggleControls(bool isEnabled) {
             btnAddFiles.Enabled = isEnabled;
             btnStartConversion.Enabled = isEnabled;
@@ -298,7 +286,6 @@ namespace PCTFFM.Start {
             btnCancel.Enabled = !isEnabled;
         }
 
-        // 변환 취소 버튼 클릭
         private void btnCancel_Click(object sender, EventArgs e) {
             if (cancellationTokenSource != null && !cancellationTokenSource.IsCancellationRequested) {
                 if (Tol.ShowQ("변환을 취소하시겠습니까?")) {
@@ -308,7 +295,6 @@ namespace PCTFFM.Start {
             }
         }
 
-        // 출력 폴더 선택 버튼 클릭
         private void btnSelectOutputFolder_Click(object sender, EventArgs e) {
             using (CommonOpenFileDialog dialog = new CommonOpenFileDialog()) {
                 dialog.Multiselect = false;
@@ -320,7 +306,6 @@ namespace PCTFFM.Start {
             }
         }
 
-        // 삭제 버튼 클릭
         private void btnDelete_Click(object sender, EventArgs e) {
             DeleteRow();
         }
@@ -344,7 +329,6 @@ namespace PCTFFM.Start {
             }
         }
 
-        // 파일 보기 버튼 클릭
         private void btnViewFile_Click(object sender, EventArgs e) {
             FileView();
         }
@@ -362,15 +346,15 @@ namespace PCTFFM.Start {
             }
         }
 
-        // FFmpeg를 이용한 파일 변환
         private bool ConvertFileWithFFmpeg(string inputFile, string outputFile, string format, CancellationToken cancellationToken) {
             try {
-                // 품질 설정에 따른 FFmpeg 인자
+                string ffmpegPath = Path.Combine(Tol.AppdataPath, "ffmpeg.exe");
+
                 string qualityArgs = Tol.GetQualityArguments(format);
                 string ffmpegArguments = $"-i \"{inputFile}\" {qualityArgs} -y \"{outputFile}\"";
 
                 ProcessStartInfo processStartInfo = new ProcessStartInfo {
-                    FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
+                    FileName = ffmpegPath,
                     Arguments = ffmpegArguments,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -403,8 +387,6 @@ namespace PCTFFM.Start {
                 return false;
             }
         }
-
-        // 드래그 앤 드롭
         private void listViewFiles_DragDrop(object sender, DragEventArgs e) {
             button1.BackColor = Color.White;
 
@@ -451,7 +433,6 @@ namespace PCTFFM.Start {
             button1.BackColor = Color.White;
         }
 
-        // 키보드 단축키
         private void listViewFiles_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Delete) {
                 btnDelete.PerformClick();
@@ -469,18 +450,16 @@ namespace PCTFFM.Start {
             }
         }
 
-        private void Form1_KeyDown(object sender, KeyEventArgs e) {
+        private async void Form1_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.F10) {
-                Start();
+                await StartAsync();
             }
         }
 
-        // 동시 변환 수 변경
         private void numericUpDownThreads_ValueChanged(object sender, EventArgs e) {
             maxParallelTasks = (int)numericUpDownThreads.Value;
         }
-
-        // 모두 삭제 버튼
+=
         private void btnClearAll_Click(object sender, EventArgs e) {
             if (fileList.Count > 0) {
                 if (Tol.ShowQ("모든 파일을 목록에서 제거하시겠습니까?")) {
