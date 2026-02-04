@@ -5,7 +5,7 @@
 ; ============================================================================
 
 #define MyAppName "파일좀 변환해줘라"
-#define MyAppVersion "3.1.0.0"
+#define MyAppVersion "3.1.0.1"
 #define MyAppPublisher "Ji Beak min(tharu8813)"
 #define MyAppCopyright "© 2024-2026 Ji Beak min(tharu8813). All rights reserved."
 #define MyAppURL "https://github.com/tharu8813/PCTFFM"
